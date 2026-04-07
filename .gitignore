@@ -2,3 +2,8 @@ run.log
 generated_results.html
 output/
 _output/
+
+.venv/
+__pycache__/
+*.egg-info/
+*.pyc

@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qverify-simulation"
+version = "0.1.0"
+description = "QVerify statistical simulations for relative-error figures (fig1, fig2)"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.21",
+  "qiskit>=1.0",
+  "qiskit-aer>=0.13",
+  "matplotlib>=3.7",
+]
+
+[project.scripts]
+qverify-v1-pdfs = "qverify_simulation.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
