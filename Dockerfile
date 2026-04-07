@@ -12,6 +12,7 @@ ENV LC_ALL=C.UTF-8
 RUN apt-get update && apt-get install -y --no-install-recommends \
         m4 \
         python3 \
+        python3-pip \
         python3-pydot \
         make \
         time \
@@ -27,6 +28,12 @@ COPY . .
 
 # Make all tool scripts executable
 RUN chmod -R a+x ./tools/
+
+# Statistical simulations (Qiskit + matplotlib); headless plotting in Docker
+ENV MPLBACKEND=Agg
+# Ubuntu's pip/setuptools can mis-build PEP 621 projects as "UNKNOWN"; upgrade first.
+RUN pip3 install --upgrade pip setuptools wheel \
+    && pip3 install --no-cache-dir ./simulation_for_statistical_analysis
 
 # Put bundled Maude on PATH so tamarin-prover can find it at runtime
 ENV PATH="/workspace/tools/maude:${PATH}"

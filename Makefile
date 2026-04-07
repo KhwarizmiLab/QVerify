@@ -1,5 +1,7 @@
 abs_dir := $(shell pwd)
-DOCKER_IMAGE ?= rqe-qkd-fv
+DOCKER_IMAGE ?= qverify
+# Extra args for qverify-v1-pdfs in Docker, e.g. SIM_FLAGS='--num-qubits 64 --shots 40'
+SIM_FLAGS ?=
 clean_spthy=./tools/clean_spthy
 tamarin=./tools/tamarin-prover
 TAMARIN_FLAGS= 
@@ -78,36 +80,57 @@ clean_all: clean clean_theory clean_proofs clean_tmp
 
 
 # ─── Docker targets ──────────────────────────────────────────────────────────
+# Ensure host _output is writable and (on macOS) strip xattrs that cause EPERM on bind mounts.
+.PHONY: docker-prepare-output docker-prepare-host-output
+docker-prepare-output:
+	mkdir -p ./_output
+	chmod -R u+rwX ./_output
+	@command -v xattr >/dev/null 2>&1 && xattr -cr ./_output 2>/dev/null || true
+
+# Remove generated theories on the *host* before Tamarin Docker runs. Docker Desktop on macOS
+# cannot chmod/unlink/overwrite existing files under ~/Desktop bind mounts (EPERM); creating
+# new files after host-side rm works. Does not touch _output/simulation/ or .proof files.
+docker-prepare-host-output: docker-prepare-output
+	rm -f ./_output/*.spthy ./_output/*.tmp 2>/dev/null || true
+
 # Build the Docker image (re-run whenever the Dockerfile changes)
 docker-build:
 	docker compose build
 
 # Run the full proof-generation pipeline inside Docker.
 # Outputs land in ./_output/ on the HOST (mounted into the container).
-docker-gen-proofs:
-	mkdir -p ./_output
+docker-gen-proofs: docker-prepare-host-output
 	docker compose run --rm tamarin make gen_proofs
+
+# Run statistical simulations only; PDFs and CSV land in ./_output/simulation/
+docker-simulation: docker-prepare-output
+	docker compose run --rm simulation qverify-v1-pdfs --output-dir /workspace/output/simulation $(SIM_FLAGS)
+
+# Run Tamarin gen_proofs then statistical simulation. (Running both containers in parallel on
+# the same ./_output bind mount breaks on Docker Desktop macOS: find ./output in gen_proofs
+# returns "Operation not permitted".)
+docker-gen-proofs-and-simulation: docker-prepare-host-output
+	docker compose build
+	docker compose run --rm tamarin make gen_proofs
+	docker compose run --rm simulation qverify-v1-pdfs --output-dir /workspace/output/simulation $(SIM_FLAGS)
 
 # Collect proof summaries into ./_output/generated_results.html
 # (Usually run automatically by gen_proofs but available here just in case)
-docker-collect:
-	mkdir -p ./_output
+docker-collect: docker-prepare-output
 	docker compose run --rm tamarin ./tools/collect --output=./output/generated_results.html ./output/
 
 # Open an interactive shell inside the container for debugging
-docker-shell:
+docker-shell: docker-prepare-output
 	docker compose run --rm tamarin bash
 
 # Launch Tamarin interactive mode in Docker. Access the GUI at http://127.0.0.1:$(PORT)
 # Use with: make docker-web [type=EB|PM] [PORT=3001]
 PORT ?= 3001
-docker-web:
-	mkdir -p ./_output
+docker-web: docker-prepare-output
 	docker compose run --rm -p $(PORT):3001 -e type=$(type) tamarin sh -c 'make preprocess && ./tools/tamarin-prover interactive generated_$${type}.spthy'
 
 # Launch Tamarin interactive mode over all proofs in output/. Requires gen_proofs first.
 # Access at http://127.0.0.1:$(PORT)
-docker-web-proofs:
-	mkdir -p ./_output
+docker-web-proofs: docker-prepare-output
 	docker compose run --rm -p $(PORT):3001 tamarin ./tools/tamarin-prover interactive ./output/
 

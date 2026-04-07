@@ -101,10 +101,10 @@ if __name__ == "__main__":
                 BasisAnnOrders=["SeqA", "SeqB"]
             for BasisAnnOrder in BasisAnnOrders:
                 for ErrorCorr in ErrorCorrCodes:
-                    text=process_file(render_template(Type,BasisAnnOrder,Adv,ErrorCorr))
-                    # Write the processed lines to the output file
-                    with open(f"./output/{Type}_{Adv}_{BasisAnnOrder}_{ErrorCorr}.spthy", 'w') as outfile:
-                        outfile.writelines(text)
+                    text = process_file(render_template(Type, BasisAnnOrder, Adv, ErrorCorr))
+                    out_path = f"./output/{Type}_{Adv}_{BasisAnnOrder}_{ErrorCorr}.spthy"
+                    with open(out_path, "w") as outfile:
+                        outfile.write(text)
 
 
 

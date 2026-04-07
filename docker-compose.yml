@@ -1,6 +1,7 @@
 services:
   tamarin:
     platform: linux/amd64
+    image: qverify
     build:
       context: .
       dockerfile: Dockerfile
@@ -8,6 +9,7 @@ services:
     # Bind-mount the HOST's ./_output/ directory to /workspace/output inside
     # the container so all generated .spthy, .proof files and the HTML report
     # are written directly to your local machine.
+    # Do not bind-mount the whole repo: Docker Desktop on macOS can EPERM read/exec under ~/Desktop.
     volumes:
       - ./_output:/workspace/output
     # Expose port 3001 for interactive mode (make docker-web, make docker-web-proofs)
@@ -15,3 +17,17 @@ services:
       - "3001:3001"
     # No entrypoint – pass the make target as the command, e.g.:
     #   docker compose run --rm tamarin make gen_proofs
+
+  # Same image as tamarin (built once); duplicate build: caused parallel tag race on export.
+  simulation:
+    platform: linux/amd64
+    image: qverify
+    working_dir: /workspace
+    volumes:
+      - ./_output:/workspace/output
+    command:
+      [
+        "qverify-v1-pdfs",
+        "--output-dir",
+        "/workspace/output/simulation",
+      ]

@@ -24,7 +24,7 @@ if [ ! -d "./output" ]; then
     exit 1
 fi
 
-FILES=$(find ./output -name "*.spthy")
+FILES=$(for f in ./output/*.spthy; do [ -f "$f" ] && echo "$f"; done)
 if [ -z "$FILES" ]; then
     echo "No .spthy files found in './output/' directory."
     exit 0
