@@ -4,11 +4,26 @@
 TAMARIN=./tools/tamarin-prover
 TAMARIN_FLAGS=
 
+MANIFEST=./_output/.spthy_manifest
+
+# List .spthy paths without globbing ./_output (Docker Desktop macOS: EPERM on readdir).
+list_spthy_paths() {
+    if [ -f "$MANIFEST" ]; then
+        while IFS= read -r line || [ -n "$line" ]; do
+            [ -z "$line" ] && continue
+            echo "$line"
+        done <"$MANIFEST"
+        return
+    fi
+    for f in ./_output/*.spthy; do
+        [ -f "$f" ] && echo "$f"
+    done
+}
+
 # Prove file function
 prove_file() {
     file="$1"
     proof_file=$(echo "$file" | sed 's/\.spthy$/.proof/')
-    tmp_file=$(echo "$file" | sed 's/\.spthy$/.tmp/')
 
     # Skip if proof already exists
     if [ -f "$proof_file" ]; then
@@ -18,6 +33,10 @@ prove_file() {
 
     # Print date and time for monitoring
     echo "Analysis started on $(date '+%Y-%m-%d at %H:%M:%S') for file: ${file}"
+
+    # Capture Tamarin stdout to /tmp: Docker Desktop macOS bind mounts can refuse creating
+    # some ./_output/*.tmp names next to .spthy (ENOENT) while mktemp under /tmp works.
+    tmp_file=$(mktemp /tmp/qverify_tamarin.XXXXXX)
 
     # Run Tamarin
     CMD="$TAMARIN --prove --derivcheck-timeout=0 -c=100 ${file} $TAMARIN_FLAGS --output=${proof_file}"
@@ -37,18 +56,43 @@ prove_file() {
 }
 
 # Main logic
-if [ ! -d "./output" ]; then
-    echo "Directory './output/' not found!"
+if [ ! -d "./_output" ]; then
+    echo "Directory './_output/' not found!"
     exit 1
 fi
 
-# Avoid find(1) on ./output: Docker Desktop macOS bind mounts can return EPERM on find.
-FILES=$(for f in ./output/*.spthy; do [ -f "$f" ] && echo "$f"; done | sort -r)
+# Avoid find(1) on ./_output: Docker Desktop macOS bind mounts can return EPERM on find.
+FILES=$(list_spthy_paths | sort -r)
 if [ -z "$FILES" ]; then
-    echo "No .spthy files found in './output/' directory."
+    echo "No .spthy files found in './_output/' directory."
     exit 0
 fi
+
+TOTAL=0
+NEED=0
+for f in $FILES; do
+    [ -f "$f" ] || continue
+    TOTAL=$((TOTAL + 1))
+    pf=$(echo "$f" | sed 's/\.spthy$/.proof/')
+    [ -f "$pf" ] || NEED=$((NEED + 1))
+done
+echo "gen_proofs: $TOTAL theory file(s); $NEED still need a .proof (others are skipped)."
 
 for file in $FILES; do
     prove_file "$file"
 done
+
+MISSING_END=0
+for f in $FILES; do
+    [ -f "$f" ] || continue
+    pf=$(echo "$f" | sed 's/\.spthy$/.proof/')
+    [ -f "$pf" ] || MISSING_END=$((MISSING_END + 1))
+done
+if [ "$MISSING_END" -gt 0 ]; then
+    echo "gen_proofs: INCOMPLETE — $MISSING_END theory file(s) still have no .proof (interrupt or Tamarin error)."
+    if [ -z "$GEN_PROOFS_ALLOW_PARTIAL" ]; then
+        exit 1
+    fi
+else
+    echo "gen_proofs: complete — all $TOTAL theories have .proof files."
+fi

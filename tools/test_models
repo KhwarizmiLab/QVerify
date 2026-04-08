@@ -19,14 +19,14 @@ test() {
 }
 
 # Main logic
-if [ ! -d "./output" ]; then
-    echo "Directory './output/' not found!"
+if [ ! -d "./_output" ]; then
+    echo "Directory './_output/' not found!"
     exit 1
 fi
 
-FILES=$(for f in ./output/*.spthy; do [ -f "$f" ] && echo "$f"; done)
+FILES=$(for f in ./_output/*.spthy; do [ -f "$f" ] && echo "$f"; done)
 if [ -z "$FILES" ]; then
-    echo "No .spthy files found in './output/' directory."
+    echo "No .spthy files found in './_output/' directory."
     exit 0
 fi
 

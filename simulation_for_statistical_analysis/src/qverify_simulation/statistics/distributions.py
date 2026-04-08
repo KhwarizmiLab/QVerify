@@ -30,6 +30,8 @@ def compute_error_dist_eb(res, BA, BB, num_qubits, bin_size=5):
         parts = k[::-1].split(" ")
         rai, rbi = parts[0], parts[1]
         chsh_i = chsh_corr(rai, rbi, BA, BB)
+        if chsh_i is None:
+            continue
         re_i = relative_error_cal(chsh_i, CHSH_IDEAL)
         if re_i is None:
             continue
@@ -44,6 +46,8 @@ def compute_error_dist_pm(res, RA, BA, BB, num_qubits, bin_size=5):
     for k, v in res.items():
         rbi = k[::-1]
         chsh_i = chsh_corr(RA, rbi, BA, BB)
+        if chsh_i is None:
+            continue
         re_i = relative_error_cal(chsh_i, CHSH_IDEAL)
         if re_i is None:
             continue

@@ -3,7 +3,7 @@
 # Run after gen_proofs (or after per-lemma extraction).
 set -e
 DOT=
-for t in ./output/*_graphs/*.proof_trace 2>/dev/null; do
+for t in ./_output/*_graphs/*.proof_trace 2>/dev/null; do
     [ -f "$t" ] || continue
     pdf="${t%.proof_trace}.pdf"
     [ -f "$pdf" ] && continue

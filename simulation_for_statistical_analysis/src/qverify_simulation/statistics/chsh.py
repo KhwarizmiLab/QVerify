@@ -30,6 +30,9 @@ def chsh_corr(RA, RB, BA, BB):
     total13 = sum(count_a1_b3)
     total31 = sum(count_a3_b1)
     total33 = sum(count_a3_b3)
+    # Need nonzero counts in all four CHSH basis pairs; otherwise correlation is undefined.
+    if min(total11, total13, total31, total33) == 0:
+        return None
     expect11 = (
         count_a1_b1[0] - count_a1_b1[1] - count_a1_b1[2] + count_a1_b1[3]
     ) / total11

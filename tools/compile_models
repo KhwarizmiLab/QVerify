@@ -92,7 +92,10 @@ def render_template(Type,BasisAnnOrder,Adv,ErrorCorr,include_lemmas=['e','s','a'
 
 
 if __name__ == "__main__":
-    os.makedirs("./output", exist_ok=True)
+    os.makedirs("./_output", exist_ok=True)
+    # Written for gen_proofs: Docker Desktop macOS bind mounts often return EPERM on
+    # readdir(3), so shell globs on ./_output/*.spthy fail even when files exist.
+    manifest_paths = []
     for Type in Types:
         for Adv in Advassumpts:
             if(Type=="EB"):
@@ -102,9 +105,14 @@ if __name__ == "__main__":
             for BasisAnnOrder in BasisAnnOrders:
                 for ErrorCorr in ErrorCorrCodes:
                     text = process_file(render_template(Type, BasisAnnOrder, Adv, ErrorCorr))
-                    out_path = f"./output/{Type}_{Adv}_{BasisAnnOrder}_{ErrorCorr}.spthy"
+                    out_path = f"./_output/{Type}_{Adv}_{BasisAnnOrder}_{ErrorCorr}.spthy"
                     with open(out_path, "w") as outfile:
                         outfile.write(text)
+                    manifest_paths.append(out_path)
+    with open("./_output/.spthy_manifest", "w") as mf:
+        mf.write("\n".join(manifest_paths))
+        if manifest_paths:
+            mf.write("\n")
 
 
 

@@ -9,12 +9,16 @@ services:
     # Bind-mount the HOST's ./_output/ directory to /workspace/output inside
     # the container so all generated .spthy, .proof files and the HTML report
     # are written directly to your local machine.
-    # Do not bind-mount the whole repo: Docker Desktop on macOS can EPERM read/exec under ~/Desktop.
+    # Do not bind-mount ./tools: Docker Desktop on macOS often returns EPERM when reading
+    # scripts under ~/Desktop (python3 /workspace/tools/collect). Tools come from the image (COPY).
     volumes:
       - ./_output:/workspace/output
     # Expose port 3001 for interactive mode (make docker-web, make docker-web-proofs)
     ports:
       - "3001:3001"
+    # Pass through from host: export GEN_PROOFS_ALLOW_PARTIAL=1 to allow partial proof batches.
+    environment:
+      - GEN_PROOFS_ALLOW_PARTIAL
     # No entrypoint – pass the make target as the command, e.g.:
     #   docker compose run --rm tamarin make gen_proofs
 
@@ -29,5 +33,5 @@ services:
       [
         "qverify-v1-pdfs",
         "--output-dir",
-        "/workspace/output/simulation",
+        "/workspace/_output/simulation",
       ]
