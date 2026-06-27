@@ -1,4 +1,4 @@
-# QVerify — Proof Generation for QKD Protocol Verification
+# QVerify : Proof Generation for QKD Protocol Verification
 
 **Artifacts for:** *Beyond the Quantum Promise: A Security Analysis of Classical Control in Quantum Key Distribution*
 
